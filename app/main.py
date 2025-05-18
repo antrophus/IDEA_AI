@@ -3,6 +3,9 @@ from app.router import chatbot
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from pymongo import MongoClient
+from fastapi.responses import JSONResponse
+import datetime
 
 # 로깅 설정
 logging.basicConfig(

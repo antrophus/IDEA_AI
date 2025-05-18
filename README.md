@@ -1,100 +1,57 @@
-# IDEA-AI: 장애인 고용 지원 AI 시스템
+# 장애인 복지 AI 챗봇 API
 
-## 📌 프로젝트 개요
-IDEA-AI는 장애인 고용 지원을 위한 AI 기반 시스템입니다. 이 시스템은 장애인 고용 관련 정책, 제도, 지원금 등의 정보를 제공하고, 사용자의 질문에 대해 정확하고 유용한 답변을 제공합니다.
+## 프로젝트 개요
+- 장애인 복지 정보 및 상담을 제공하는 AI 챗봇 백엔드 API 서버
+- 주요 기능: 대화형 질의응답, 전문가 추천, 정책/복지 정보 검색, 대화 이력 분석, 복지 혜택 분석, 외부 API 연동
+- 기술 스택: Python, FastAPI, Pydantic, MongoDB, OpenAI API 등
 
-## 🚀 주요 기능
-- 장애인 고용 관련 정책 및 제도 정보 제공
-- 지원금 및 혜택 안내
-- FAQ 및 상담 지원
-- 맞춤형 정보 추천
+## 설치 및 실행 방법
+1. 의존성 설치
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. 환경 변수 설정
+   - `.env.example` 파일 참고하여 `.env` 파일 생성 및 환경 변수 입력
+3. 서버 실행
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-## 🛠️ 기술 스택
-- Python 3.8+
-- FastAPI
-- LangChain
-- OpenAI GPT
-- MongoDB
-- BeautifulSoup4
+## API 문서 접근 방법
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- OpenAPI 명세(JSON): [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
 
-## 📁 프로젝트 구조
-```
-IDEA-AI/
-├── app/
-│   ├── data/                    # 데이터 파일 저장
-│   │   └── counseling/         # 상담 관련 데이터
-│   ├── models/                 # 데이터 모델 정의
-│   │   ├── policy_card.py     # 정책 카드 모델
-│   │   └── expert_type.py     # 전문가 유형 정의
-│   ├── router/                # API 라우터
-│   │   └── chatbot.py        # 챗봇 API 엔드포인트
-│   ├── scripts/              # 유틸리티 스크립트
-│   │   ├── crawl_kead.py    # 웹 크롤링 스크립트
-│   │   └── upload_to_mongo.py # DB 업로드 스크립트
-│   ├── service/             # 핵심 서비스 로직
-│   │   ├── agents/         # AI 에이전트
-│   │   │   ├── general_chatbot.py
-│   │   │   └── supervisor.py
-│   │   ├── experts/       # 전문가 AI
-│   │   │   ├── base_expert.py
-│   │   │   ├── counseling_expert.py
-│   │   │   └── policy_expert.py
-│   │   ├── tools/        # 유틸리티 도구
-│   │   │   └── counseling_tools.py
-│   │   ├── utils/       # 공통 유틸리티
-│   │   │   ├── cache.py
-│   │   │   └── data_processor.py
-│   │   ├── embedding.py    # 임베딩 처리
-│   │   ├── mongodb.py     # DB 연동
-│   │   └── openai_client.py # OpenAI 클라이언트
-│   └── main.py           # 애플리케이션 진입점
-├── document/            # 프로젝트 문서
-├── tests/             # 테스트 코드
-├── .env.example      # 환경 변수 예시
-├── .gitignore       # Git 제외 파일
-├── README.md       # 프로젝트 설명
-├── requirements.txt # 의존성 목록
-└── system_overview.md # 시스템 개요
+### 주요 엔드포인트 요약
+| HTTP 메서드 | 경로                | 기능 설명                                   |
+|-------------|---------------------|---------------------------------------------|
+| POST        | /chat/start         | 대화 시작, 전문가 카드 목록 및 인사 반환     |
+| POST        | /chat/expert        | 특정 전문가(정책, 취업 등) 질의응답         |
+| POST        | /chat/conversation  | 일반/전문가 대화(대화 이력 기반)            |
+| POST        | /analyze/benefits   | 사용자/구직 정보 기반 복지 혜택 분석        |
+| GET         | /                   | 서버 상태 확인(헬스체크)                    |
+
+## 아키텍처 다이어그램
+- 주요 컴포넌트 및 데이터 흐름:
+
+```plantuml
+@startuml
+actor User
+User -> Router : HTTP 요청 (예: /chat/conversation)
+Router -> Service : 비즈니스 로직 호출 (agents/experts)
+Service -> Analyzer : 입력 분석/처리
+Service -> Database : 대화 기록/사용자 정보 저장/조회
+Service -> ExternalAPI : 외부 서비스 연동(OpenAI, 복지로 등)
+Analyzer -> Database : 분석 결과 저장/조회
+Router -> User : HTTP 응답 반환
+@enduml
 ```
 
-## ⚠️ 주의사항
-현재 다음 기능들은 개발 중이며 주석 처리되어 있습니다:
-- `app/service/utils/data_processor.py`의 `extract_structured_data` 메서드
-- `app/service/tools/counseling_tools.py`의 `search_counseling_centers` 메서드
-- `app/service/experts/policy_expert.py`의 `search_policy_database` 메서드
-- `app/scripts/crawl_kead.py`의 전체 크롤링 스크립트
+## 문서 참조 가이드
+- 상세 리팩토링 및 구조 분석: `app/doc/리팩토링_분석.md`
+- 환경 변수 예시: `.env.example`
+- 기타 문서: `docs/`, `scripts/` 등
 
-## 🚀 시작하기
-1. 저장소 클론
-```bash
-git clone https://github.com/your-username/IDEA-AI.git
-cd IDEA-AI
-```
-
-2. 가상환경 설정
-```bash
-conda create -n idea-ai python=3.8
-conda activate idea-ai
-```
-
-3. 의존성 설치
-```bash
-pip install -r requirements.txt
-```
-
-4. 환경 변수 설정
-```bash
-cp .env.example .env
-# .env 파일을 편집하여 필요한 API 키와 설정을 추가
-```
-
-5. 서버 실행
-```bash
-uvicorn app.main:app --reload
-```
-
-## 📝 라이선스
-MIT License
-
-## 👥 기여
-프로젝트에 기여하고 싶으시다면 Pull Request를 보내주세요. 
+## 기여 방법
+- 코드/문서 기여: Pull Request 제출 전, 코드 스타일 및 문서화 표준 준수
+- 이슈/버그 제보: GitHub Issues 활용
+- 문의/기여 가이드: `CONTRIBUTING.md`(추가 예정) 참고 

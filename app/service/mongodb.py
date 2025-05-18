@@ -6,11 +6,16 @@ import numpy as np
 
 load_dotenv()
 client = MongoClient(os.getenv("MONGO_URI"))
-db = client["kead_db"]
-collection = db["policy_chunks"]
+
+def get_db(db_name: str):
+    return client[db_name]
+
+def get_collection(db_name: str, col_name: str):
+    return client[db_name][col_name]
 
 # ✅ 1. Atlas Search 기반 키워드 검색
 def search_chunks_by_keyword(keyword: str, limit: int = 5):
+    collection = get_collection("kead_db", "policy_chunks")
     pipeline = [
         {
             "$search": {
@@ -28,6 +33,7 @@ def search_chunks_by_keyword(keyword: str, limit: int = 5):
 
 # ✅ 2. 벡터 임베딩 기반 유사도 검색 (GPT 응답용)
 def search_similar_policies(query_vector, limit=3):
+    collection = get_collection("kead_db", "policy_chunks")
     documents = list(collection.find({"embedding": {"$ne": None}}))
     scores = []
 
@@ -52,8 +58,7 @@ def cosine_similarity(vec1, vec2):
 # ✅ 4. public_data_db 복지 서비스 목록 검색
 
 def search_welfare_services(keyword: str = "", limit: int = 5):
-    db = client["public_data_db"]
-    col = db["welfare_service_list"]
+    col = get_collection("public_data_db", "welfare_service_list")
     if keyword:
         query = {
             "$or": [
@@ -69,15 +74,13 @@ def search_welfare_services(keyword: str = "", limit: int = 5):
 # ✅ 5. public_data_db 복지 서비스 상세 조회
 
 def get_welfare_service_detail(servId: str):
-    db = client["public_data_db"]
-    col = db["welfare_service_detail"]
+    col = get_collection("public_data_db", "welfare_service_detail")
     return col.find_one({"servId": servId})
 
 # ✅ 6. public_data_db 장애인 구직 현황 검색
 
 def search_disabled_job_offers(keyword: str = "", limit: int = 5):
-    db = client["public_data_db"]
-    col = db["disabled_job_offers"]
+    col = get_collection("public_data_db", "disabled_job_offers")
     if keyword:
         query = {
             "$or": [
