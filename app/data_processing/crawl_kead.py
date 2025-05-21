@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from app.utils import save_json
 import json
 
 # 크롤링할 페이지들
@@ -164,7 +165,5 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"❌ 에러 발생: {url} → {e}")
 
-    with open("scripts/policies.json", "w", encoding="utf-8") as f:
-        json.dump(all_docs, f, ensure_ascii=False, indent=2)
-
+    save_json(all_docs, "scripts/policies.json")
     print(f"📦 총 {len(all_docs)}건 저장됨 → scripts/policies.json")

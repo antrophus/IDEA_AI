@@ -7,9 +7,8 @@ from app.models.expert_type import ExpertType
 from app.service.experts.base_expert import BaseExpert
 from app.service.openai_client import get_client
 from app.service.experts.common_form.example_cards import POLICY_CARD_TEMPLATE
-from app.service.utils.data_processor import DataProcessor
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.service.embedding import get_embedding
+from app.utils import get_embedding
+from app.data_service.data_manager import aggregate_welfare_service_list
 
 
 
@@ -397,12 +396,7 @@ class PolicyExpert(BaseExpert):
             정책 카드 리스트
         """
         try:
-            user_embedding = await get_embedding(user_query)
-            # MongoDB 연결 (비동기)
-            mongo_uri = os.getenv("MONGO_URI")
-            client = AsyncIOMotorClient(mongo_uri)
-            db = client["public_data_db"]
-            collection = db["welfare_service_list"]
+            user_embedding = await get_embedding(self.client,user_query)
             pipeline = [
                 {
                     "$vectorSearch": {
@@ -414,9 +408,9 @@ class PolicyExpert(BaseExpert):
                     }
                 }
             ]
-            cursor = collection.aggregate(pipeline)
+            docs = await aggregate_welfare_service_list(pipeline, limit=limit)
             results = []
-            async for doc in cursor:
+            for doc in docs:
                 card = {
                     "id": doc.get("servId", ""),
                     "title": doc.get("servNm", ""),

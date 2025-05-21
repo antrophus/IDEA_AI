@@ -1,13 +1,15 @@
 from typing import Dict, List, Any
 import logging
-import os
 from app.models.expert_type import ExpertType
 from app.service.experts.base_expert import BaseExpert
 from app.service.openai_client import get_client
 from app.service.experts.common_form.example_cards import EMPLOYMENT_CARD_TEMPLATE
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.service.embedding import get_embedding
+from app.utils import get_embedding
 from app.service.utils.data_processor import DataProcessor
+from app.data_service.data_manager import (
+    aggregate_disabled_job_offers,
+    aggregate_welfare_service_list
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,6 @@ class EmploymentExpert(BaseExpert):
         super().__init__(ExpertType.EMPLOYMENT)
         self.client = get_client()
         self.model = "gpt-4.1-mini"
-        self.mongo_uri = os.getenv("MONGO_URI")
     
     def _get_system_prompt(self) -> str:
         return """
@@ -111,10 +112,7 @@ class EmploymentExpert(BaseExpert):
             keywords = DataProcessor.extract_keywords(user_query, max_keywords=5)
             keyword_query = " ".join(keywords)
             user_embedding = await get_embedding(keyword_query)
-            logger.info(f"job_offers 벡터 검색 임베딩: {user_embedding[:5]}...")  # 일부만 출력
-            client = AsyncIOMotorClient(self.mongo_uri)
-            db = client["public_data_db"]
-            collection = db["disabled_job_offers"]
+            logger.info(f"job_offers 벡터 검색 임베딩: {user_embedding[:5]}...")
             pipeline = [
                 {
                     "$vectorSearch": {
@@ -126,9 +124,9 @@ class EmploymentExpert(BaseExpert):
                     }
                 }
             ]
-            cursor = collection.aggregate(pipeline)
+            docs = await aggregate_disabled_job_offers(pipeline, limit=limit)
             results = []
-            async for doc in cursor:
+            for doc in docs:
                 logger.info(f"job_offers 검색 결과: {doc}")
                 card = {
                     "id": doc.get("id", ""),
@@ -179,16 +177,12 @@ class EmploymentExpert(BaseExpert):
             logger.error(f"임베딩 기반 구인 정보 검색 중 오류 발생: {str(e)}")
             return []
 
-
     async def search_employment_by_semantic(self, user_query: str, limit: int = 3) -> List[Dict[str, Any]]:
         """
         welfare_service_list에서 취업 관련 정책/지원 정보를 임베딩 기반으로 검색
         """
         try:
-            user_embedding = await get_embedding(user_query)
-            client = AsyncIOMotorClient(self.mongo_uri)
-            db = client["public_data_db"]
-            collection = db["welfare_service_list"]
+            user_embedding = await get_embedding(self.client,user_query)
             pipeline = [
                 {
                     "$vectorSearch": {
@@ -198,19 +192,11 @@ class EmploymentExpert(BaseExpert):
                         "numCandidates": 100,
                         "limit": limit
                     }
-                },
-                {
-                    "$match": {
-                        "$or": [
-                            {"servNm": {"$regex": "취업|고용|직업|일자리", "$options": "i"}},
-                            {"intrsThemaArray": {"$regex": "취업|고용|직업|일자리", "$options": "i"}}
-                        ]
-                    }
                 }
             ]
-            cursor = collection.aggregate(pipeline)
+            docs = await aggregate_welfare_service_list(pipeline, limit=limit)
             results = []
-            async for doc in cursor:
+            for doc in docs:
                 card = {
                     "id": doc.get("servId", ""),
                     "title": doc.get("servNm", ""),
@@ -240,7 +226,7 @@ class EmploymentExpert(BaseExpert):
                 results.append(card)
             return results
         except Exception as e:
-            logger.error(f"임베딩 기반 취업 정책 검색 중 오류 발생: {str(e)}")
+            logger.error(f"임베딩 기반 취업 정보 검색 중 오류 발생: {str(e)}")
             return []
 
     async def process_query(

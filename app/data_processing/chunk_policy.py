@@ -1,16 +1,10 @@
-from pymongo import MongoClient
+from app.data_service.data_manager import get_all_policies, insert_policy_chunks
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os, uuid, json
 from dotenv import load_dotenv
 
 # .env에서 MONGO_URI 불러오기
 load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
-
-client = MongoClient(MONGO_URI)
-db = client["kead_db"]
-policy_collection = db["policy"]
-chunk_collection = db["policy_chunks"]
 
 # 텍스트 쪼개기 설정
 splitter = RecursiveCharacterTextSplitter(
@@ -20,7 +14,7 @@ splitter = RecursiveCharacterTextSplitter(
 )
 
 def make_chunks_and_save():
-    docs = list(policy_collection.find())
+    docs = list(get_all_policies())
     chunk_docs = []
 
     for doc in docs:
@@ -46,7 +40,7 @@ def make_chunks_and_save():
             })
 
     if chunk_docs:
-        chunk_collection.insert_many(chunk_docs)
+        insert_policy_chunks(chunk_docs)
         print(f"✅ {len(chunk_docs)}개의 chunk가 저장되었습니다.")
     else:
         print("❗ chunk가 없습니다.")

@@ -50,41 +50,20 @@ async def start_chat():
             "description": "공공기관 및 민간기업 취업 정보 제공",
             "icon": "💼"
         },
-        # {
-        #     "id": "welfare",
-        #     "title": "복지 전문가",
-        #     "expert_type": "장애인 복지",
-        #     "description": "장애인 복지 서비스 및 혜택 안내",
-        #     "icon": "🏥"
-        # },
-        # {
-        #     "id": "startup",
-        #     "title": "창업 전문가",
-        #     "expert_type": "장애인 창업",
-        #     "description": "장애인 창업 지원 제도 및 프로그램 안내",
-        #     "icon": "🚀"
-        # },
-        # {
-        #     "id": "medical",
-        #     "title": "의료 전문가",
-        #     "expert_type": "장애인 의료",
-        #     "description": "장애 유형별 진료 및 의료 지원 정보",
-        #     "icon": "⚕️"
-        # },
-        # {
-        #     "id": "education",
-        #     "title": "교육 전문가",
-        #     "expert_type": "장애인 교육",
-        #     "description": "장애인 교육 프로그램 및 지원 제도 안내",
-        #     "icon": "📚"
-        # },
-        # {
-        #     "id": "counseling",
-        #     "title": "상담 전문가",
-        #     "expert_type": "전문 상담",
-        #     "description": "장애인 심리 상담 및 가족 상담 프로그램",
-        #     "icon": "💬"
-        # }
+        {
+            "id": "employment_policy",
+            "title": "고용 정책 전문가",
+            "expert_type": "고용 정책",
+            "description": "장애인 고용 정책 안내",
+            "icon": "📝"
+        },
+        {
+            "id": "job_seekers",
+            "title": "구직자 현황 전문가",
+            "expert_type": "구직자 현황",
+            "description": "장애인 구직자 현황 안내",
+            "icon": "💼"
+        }
     ]
     return {
         "answer": "안녕하세요! IDEA 챗봇입니다. 원하시는 서비스를 선택해주세요.",
@@ -94,7 +73,7 @@ async def start_chat():
 @router.post("/chat/expert")
 async def chat_expert_query(req: ExpertQueryRequest):
     try:
-        answer, cards = await get_expert_response(req.text, req.expert_type)
+        answer, cards, _ = await get_expert_response(req.text, req.expert_type)
         return {"answer": answer, "cards": cards}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

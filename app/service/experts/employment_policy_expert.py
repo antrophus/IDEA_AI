@@ -1,13 +1,11 @@
 from typing import Dict, List, Any
 import logging
-import os
 from app.models.expert_type import ExpertType
 from app.service.experts.base_expert import BaseExpert
 from app.service.openai_client import get_client
 from app.service.experts.common_form.example_cards import POLICY_CARD_TEMPLATE
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.service.embedding import get_embedding
-from app.service.utils.data_processor import DataProcessor
+from app.utils import get_embedding
+from app.data_service.data_manager import aggregate_welfare_service_list
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,6 @@ class EmploymentPolicyExpert(BaseExpert):
         super().__init__(ExpertType.EMPLOYMENT_POLICY)
         self.client = get_client()
         self.model = "gpt-4.1-mini"
-        self.mongo_uri = os.getenv("MONGO_URI")
 
     def _get_system_prompt(self) -> str:
         return """
@@ -30,10 +27,7 @@ class EmploymentPolicyExpert(BaseExpert):
         # 실제 구현에서는 정책 DB/외부 API 연동 또는 OpenAI 활용
         # 여기서는 예시로 임베딩 기반 검색 구조만 스케치
         try:
-            user_embedding = await get_embedding(query)
-            client = AsyncIOMotorClient(self.mongo_uri)
-            db = client["public_data_db"]
-            collection = db["welfare_service_list"]
+            user_embedding = await get_embedding(self.client,query)
             pipeline = [
                 {
                     "$vectorSearch": {
@@ -53,9 +47,9 @@ class EmploymentPolicyExpert(BaseExpert):
                     }
                 }
             ]
-            cursor = collection.aggregate(pipeline)
+            docs = await aggregate_welfare_service_list(pipeline, limit=3)
             results = []
-            async for doc in cursor:
+            for doc in docs:
                 card = {
                     "id": doc.get("servId", ""),
                     "title": doc.get("servNm", ""),

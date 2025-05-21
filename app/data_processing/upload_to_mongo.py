@@ -1,23 +1,19 @@
-from pymongo import MongoClient
+from app.data_service.data_manager import insert_policies
 from dotenv import load_dotenv
 import os, uuid, datetime
 import json
+from app.utils import load_json
 
 # ✅ .env에서 Mongo URI 불러오기
 load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
-
-client = MongoClient(MONGO_URI)
-db = client["kead_db"]
-collection = db["policy"]  # 문서 단위로 저장할 컬렉션
 
 # ✅ JSON 파일에서 데이터 불러오기
 def load_policy_file(file_path="policies.json"):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return load_json(file_path)
 
 def save_to_mongo():
     data = load_policy_file()
+    docs = []
     for item in data:
         doc = {
             "_id": str(uuid.uuid4()),
@@ -29,7 +25,8 @@ def save_to_mongo():
             "last_updated": item.get("last_updated", ""),
             "created_at": datetime.datetime.utcnow()
         }
-        collection.insert_one(doc)
+        docs.append(doc)
+    insert_policies(docs)
     print(f"✅ {len(data)}개 문서가 MongoDB에 저장되었습니다.")
 
 if __name__ == "__main__":
